@@ -4,6 +4,7 @@ import axios from 'axios';
 const Dashboard = () => {
   const [contacts, setContacts] = useState([]);
   const [formData, setFormData] = useState({ name: '', email: '', phone: '' });
+  const [editId, setEditId] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -31,41 +32,76 @@ const Dashboard = () => {
     }));
   };
 
-  const handleAddContact = async (e) => {
+  const handleAddOrUpdate = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
 
     try {
-      await axios.post('http://localhost:5000/api/contacts', formData, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setSuccess('Contact added!');
+      if (editId) {
+        // Update
+        await axios.put(`http://localhost:5000/api/contacts/${editId}`, formData, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setSuccess('Contact updated');
+      } else {
+        // Add
+        await axios.post('http://localhost:5000/api/contacts', formData, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setSuccess('Contact added');
+      }
+
       setFormData({ name: '', email: '', phone: '' });
+      setEditId(null);
       fetchContacts();
     } catch (err) {
-      setError('Failed to add contact');
+      setError('Failed to add or update contact');
     }
+  };
+
+  const handleEdit = (contact) => {
+    setFormData({ name: contact.name, email: contact.email, phone: contact.phone });
+    setEditId(contact._id);
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await axios.delete(`http://localhost:5000/api/contacts/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchContacts();
+    } catch (err) {
+      setError('Failed to delete contact');
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    window.location.href = '/login';
   };
 
   return (
     <div>
       <h2>My Contacts</h2>
+      <button onClick={handleLogout}>Logout</button>
 
       {error && <p style={{ color: 'red' }}>{error}</p>}
       {success && <p style={{ color: 'green' }}>{success}</p>}
 
-      <form onSubmit={handleAddContact}>
+      <form onSubmit={handleAddOrUpdate}>
         <input type="text" name="name" placeholder="Name" value={formData.name} onChange={handleChange} required />
         <input type="email" name="email" placeholder="Email" value={formData.email} onChange={handleChange} required />
         <input type="text" name="phone" placeholder="Phone" value={formData.phone} onChange={handleChange} required />
-        <button type="submit">Add Contact</button>
+        <button type="submit">{editId ? 'Update' : 'Add'} Contact</button>
       </form>
 
       <ul style={{ marginTop: '20px' }}>
         {contacts.map(contact => (
           <li key={contact._id}>
             {contact.name} - {contact.email} - {contact.phone}
+            <button onClick={() => handleEdit(contact)}>Edit</button>
+            <button onClick={() => handleDelete(contact._id)}>Delete</button>
           </li>
         ))}
       </ul>
