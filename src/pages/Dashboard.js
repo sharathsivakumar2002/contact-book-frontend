@@ -1,14 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import axios from 'axios';
+import { AuthContext } from '../context/AuthContext';
 
 const Dashboard = () => {
+  const { token, logout } = useContext(AuthContext);
   const [contacts, setContacts] = useState([]);
   const [formData, setFormData] = useState({ name: '', email: '', phone: '' });
   const [editId, setEditId] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-
-  const token = localStorage.getItem('token');
 
   const fetchContacts = async () => {
     try {
@@ -39,13 +39,11 @@ const Dashboard = () => {
 
     try {
       if (editId) {
-        // Update
         await axios.put(`http://localhost:5000/api/contacts/${editId}`, formData, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setSuccess('Contact updated');
       } else {
-        // Add
         await axios.post('http://localhost:5000/api/contacts', formData, {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -56,7 +54,7 @@ const Dashboard = () => {
       setEditId(null);
       fetchContacts();
     } catch (err) {
-      setError('Failed to add or update contact');
+      setError('Failed to save contact');
     }
   };
 
@@ -76,15 +74,10 @@ const Dashboard = () => {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    window.location.href = '/login';
-  };
-
   return (
     <div>
       <h2>My Contacts</h2>
-      <button onClick={handleLogout}>Logout</button>
+      <button onClick={logout}>Logout</button>
 
       {error && <p style={{ color: 'red' }}>{error}</p>}
       {success && <p style={{ color: 'green' }}>{success}</p>}
@@ -96,7 +89,7 @@ const Dashboard = () => {
         <button type="submit">{editId ? 'Update' : 'Add'} Contact</button>
       </form>
 
-      <ul style={{ marginTop: '20px' }}>
+      <ul>
         {contacts.map(contact => (
           <li key={contact._id}>
             {contact.name} - {contact.email} - {contact.phone}
