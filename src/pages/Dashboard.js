@@ -75,7 +75,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div>
+    <div className="container">
       <h2>My Contacts</h2>
       <button onClick={logout}>Logout</button>
 
@@ -83,18 +83,41 @@ const Dashboard = () => {
       {success && <p style={{ color: 'green' }}>{success}</p>}
 
       <form onSubmit={handleAddOrUpdate}>
-        <input type="text" name="name" placeholder="Name" value={formData.name} onChange={handleChange} required />
-        <input type="email" name="email" placeholder="Email" value={formData.email} onChange={handleChange} required />
-        <input type="text" name="phone" placeholder="Phone" value={formData.phone} onChange={handleChange} required />
+        <input
+          type="text"
+          name="name"
+          placeholder="Name"
+          value={formData.name}
+          onChange={handleChange}
+          required
+        />
+        <input
+          type="email"
+          name="email"
+          placeholder="Email"
+          value={formData.email}
+          onChange={handleChange}
+          required
+        />
+        <input
+          type="text"
+          name="phone"
+          placeholder="Phone"
+          value={formData.phone}
+          onChange={handleChange}
+          required
+        />
         <button type="submit">{editId ? 'Update' : 'Add'} Contact</button>
       </form>
 
       <ul>
-        {contacts.map(contact => (
+        {contacts.map((contact) => (
           <li key={contact._id}>
             {contact.name} - {contact.email} - {contact.phone}
-            <button onClick={() => handleEdit(contact)}>Edit</button>
-            <button onClick={() => handleDelete(contact._id)}>Delete</button>
+            <div>
+              <button onClick={() => handleEdit(contact)}>Edit</button>
+              <button onClick={() => handleDelete(contact._id)}>Delete</button>
+            </div>
           </li>
         ))}
       </ul>
