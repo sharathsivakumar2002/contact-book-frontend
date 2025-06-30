@@ -1,23 +1,23 @@
 import React, { useEffect, useState, useContext } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
+import { toast } from 'react-toastify';
 
 const Dashboard = () => {
   const { token, logout } = useContext(AuthContext);
   const [contacts, setContacts] = useState([]);
   const [formData, setFormData] = useState({ name: '', email: '', phone: '' });
   const [editId, setEditId] = useState(null);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const fetchContacts = async () => {
     try {
       const res = await axios.get('http://localhost:5000/api/contacts', {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       setContacts(res.data);
-    } catch (err) {
-      setError('Failed to fetch contacts');
+    } catch {
+      toast.error('Failed to fetch contacts');
     }
   };
 
@@ -26,35 +26,33 @@ const Dashboard = () => {
   }, []);
 
   const handleChange = (e) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     }));
   };
 
   const handleAddOrUpdate = async (e) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
 
     try {
       if (editId) {
         await axios.put(`http://localhost:5000/api/contacts/${editId}`, formData, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
-        setSuccess('Contact updated');
+        toast.success('Contact updated');
       } else {
         await axios.post('http://localhost:5000/api/contacts', formData, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
-        setSuccess('Contact added');
+        toast.success('Contact added');
       }
 
       setFormData({ name: '', email: '', phone: '' });
       setEditId(null);
       fetchContacts();
-    } catch (err) {
-      setError('Failed to save contact');
+    } catch {
+      toast.error('Failed to save contact');
     }
   };
 
@@ -66,61 +64,79 @@ const Dashboard = () => {
   const handleDelete = async (id) => {
     try {
       await axios.delete(`http://localhost:5000/api/contacts/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
+      toast.success('Contact deleted');
       fetchContacts();
-    } catch (err) {
-      setError('Failed to delete contact');
+    } catch {
+      toast.error('Failed to delete contact');
     }
   };
 
   return (
     <div className="container">
-      <h2>My Contacts</h2>
-      <button onClick={logout}>Logout</button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h2>Dashboard</h2>
+        <button onClick={logout}>Logout</button>
+      </div>
 
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      {success && <p style={{ color: 'green' }}>{success}</p>}
+      <div style={{ marginTop: '30px' }}>
+        <h3>{editId ? 'Edit Contact' : 'Add New Contact'}</h3>
+        <form onSubmit={handleAddOrUpdate}>
+          <input
+            type="text"
+            name="name"
+            placeholder="Name"
+            value={formData.name}
+            onChange={handleChange}
+            required
+          />
+          <input
+            type="email"
+            name="email"
+            placeholder="Email"
+            value={formData.email}
+            onChange={handleChange}
+            required
+          />
+          <input
+            type="text"
+            name="phone"
+            placeholder="Phone"
+            value={formData.phone}
+            onChange={handleChange}
+            required
+          />
+          <button type="submit">{editId ? 'Update Contact' : 'Add Contact'}</button>
+        </form>
+      </div>
 
-      <form onSubmit={handleAddOrUpdate}>
+      <div style={{ marginTop: '40px' }}>
+        <h3>Your Contacts</h3>
         <input
           type="text"
-          name="name"
-          placeholder="Name"
-          value={formData.name}
-          onChange={handleChange}
-          required
+          placeholder="Search by name or email"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={{ marginBottom: '15px', padding: '8px', width: '100%' }}
         />
-        <input
-          type="email"
-          name="email"
-          placeholder="Email"
-          value={formData.email}
-          onChange={handleChange}
-          required
-        />
-        <input
-          type="text"
-          name="phone"
-          placeholder="Phone"
-          value={formData.phone}
-          onChange={handleChange}
-          required
-        />
-        <button type="submit">{editId ? 'Update' : 'Add'} Contact</button>
-      </form>
-
-      <ul>
-        {contacts.map((contact) => (
-          <li key={contact._id}>
-            {contact.name} - {contact.email} - {contact.phone}
-            <div>
-              <button onClick={() => handleEdit(contact)}>Edit</button>
-              <button onClick={() => handleDelete(contact._id)}>Delete</button>
-            </div>
-          </li>
-        ))}
-      </ul>
+        <ul>
+          {contacts
+            .filter((c) =>
+              c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              c.email.toLowerCase().includes(searchTerm.toLowerCase())
+            )
+            .map((contact) => (
+              <li key={contact._id} style={{ marginBottom: '10px' }}>
+                {contact.name} - {contact.email} - {contact.phone}
+                <div style={{ marginTop: '5px' }}>
+                  <button onClick={() => handleEdit(contact)}>Edit</button>
+                  <button onClick={() => handleDelete(contact._id)}>Delete</button>
+                </div>
+              </li>
+            ))}
+        </ul>
+      </div>
     </div>
   );
 };
