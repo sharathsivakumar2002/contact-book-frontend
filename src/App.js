@@ -1,29 +1,28 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
-import Dashboard from './pages/Dashboard';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Dashboard from './pages/Dashboard';
 import PrivateRoute from './components/PrivateRoute';
-import Navbar from './components/Navbar';
 
-function App() {
+const App = () => {
   return (
-    <>
-      <Navbar />
-      <Routes>
-        <Route path="/register" element={<Register />} />
-        <Route path="/login" element={<Login />} />
-        <Route
-          path="/"
-          element={
-            <PrivateRoute>
-              <Dashboard />
-            </PrivateRoute>
-          }
-        />
-      </Routes>
-    </>
+    <Routes>
+      {/* Public Routes */}
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+
+      {/* Protected Dashboard */}
+      <Route path="/" element={
+        <PrivateRoute>
+          <Dashboard />
+        </PrivateRoute>
+      } />
+
+      {/* Redirect unknown paths to login or 404 (optional) */}
+      <Route path="*" element={<Navigate to="/login" />} />
+    </Routes>
   );
-}
+};
 
 export default App;
