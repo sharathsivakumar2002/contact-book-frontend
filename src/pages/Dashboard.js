@@ -1,144 +1,160 @@
-import React, { useEffect, useState, useContext } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { AuthContext } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import AddContact from '../components/AddContact';
+import EditContact from '../components/EditContact';
 
 const Dashboard = () => {
-  const { token, logout } = useContext(AuthContext);
   const [contacts, setContacts] = useState([]);
-  const [formData, setFormData] = useState({ name: '', email: '', phone: '' });
-  const [editId, setEditId] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedContact, setSelectedContact] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   const fetchContacts = async () => {
     try {
+      const token = localStorage.getItem('token');
       const res = await axios.get('http://localhost:5000/api/contacts', {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
       setContacts(res.data);
-    } catch {
-      toast.error('Failed to fetch contacts');
+      setLoading(false);
+    } catch (err) {
+      toast.error('Error fetching contacts');
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchContacts();
-  }, []);
-
-  const handleChange = (e) => {
-    setFormData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
-  };
-
-  const handleAddOrUpdate = async (e) => {
-    e.preventDefault();
-
-    try {
-      if (editId) {
-        await axios.put(`http://localhost:5000/api/contacts/${editId}`, formData, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        toast.success('Contact updated');
-      } else {
-        await axios.post('http://localhost:5000/api/contacts', formData, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        toast.success('Contact added');
-      }
-
-      setFormData({ name: '', email: '', phone: '' });
-      setEditId(null);
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login');
+    } else {
       fetchContacts();
-    } catch {
-      toast.error('Failed to save contact');
     }
-  };
-
-  const handleEdit = (contact) => {
-    setFormData({ name: contact.name, email: contact.email, phone: contact.phone });
-    setEditId(contact._id);
-  };
+  }, [navigate]);
 
   const handleDelete = async (id) => {
     try {
+      const token = localStorage.getItem('token');
       await axios.delete(`http://localhost:5000/api/contacts/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
-      toast.success('Contact deleted');
-      fetchContacts();
-    } catch {
+      setContacts(contacts.filter((contact) => contact._id !== id));
+      toast.success('Contact deleted successfully');
+    } catch (err) {
       toast.error('Failed to delete contact');
     }
   };
 
+  const handleEdit = (contact) => {
+    setSelectedContact(contact);
+  };
+
+  const handleUpdate = (updatedContact) => {
+    setContacts((prev) =>
+      prev.map((contact) =>
+        contact._id === updatedContact._id ? updatedContact : contact
+      )
+    );
+    setSelectedContact(null);
+  };
+
+  const handleAdd = (newContact) => {
+    setContacts([...contacts, newContact]);
+  };
+
   return (
-    <div className="container">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2>Dashboard</h2>
-        <button onClick={logout}>Logout</button>
-      </div>
+    <div style={styles.container}>
+      <h2>Contact Book Dashboard</h2>
+      {loading ? (
+        <p>Loading contacts...</p>
+      ) : (
+        <>
+          {selectedContact ? (
+            <EditContact
+              contact={selectedContact}
+              onUpdate={handleUpdate}
+              onCancel={() => setSelectedContact(null)}
+            />
+          ) : (
+            <AddContact onAdd={handleAdd} />
+          )}
 
-      <div style={{ marginTop: '30px' }}>
-        <h3>{editId ? 'Edit Contact' : 'Add New Contact'}</h3>
-        <form onSubmit={handleAddOrUpdate}>
-          <input
-            type="text"
-            name="name"
-            placeholder="Name"
-            value={formData.name}
-            onChange={handleChange}
-            required
-          />
-          <input
-            type="email"
-            name="email"
-            placeholder="Email"
-            value={formData.email}
-            onChange={handleChange}
-            required
-          />
-          <input
-            type="text"
-            name="phone"
-            placeholder="Phone"
-            value={formData.phone}
-            onChange={handleChange}
-            required
-          />
-          <button type="submit">{editId ? 'Update Contact' : 'Add Contact'}</button>
-        </form>
-      </div>
-
-      <div style={{ marginTop: '40px' }}>
-        <h3>Your Contacts</h3>
-        <input
-          type="text"
-          placeholder="Search by name or email"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          style={{ marginBottom: '15px', padding: '8px', width: '100%' }}
-        />
-        <ul>
-          {contacts
-            .filter((c) =>
-              c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-              c.email.toLowerCase().includes(searchTerm.toLowerCase())
-            )
-            .map((contact) => (
-              <li key={contact._id} style={{ marginBottom: '10px' }}>
-                {contact.name} - {contact.email} - {contact.phone}
-                <div style={{ marginTop: '5px' }}>
-                  <button onClick={() => handleEdit(contact)}>Edit</button>
-                  <button onClick={() => handleDelete(contact._id)}>Delete</button>
+          <ul style={styles.list}>
+            {contacts.map((contact) => (
+              <li key={contact._id} style={styles.card}>
+                <div>
+                  <strong>{contact.name}</strong>
+                  <br />
+                  {contact.email}
+                  <br />
+                  {contact.phone}
+                </div>
+                <div style={styles.actions}>
+                  <button
+                    onClick={() => handleEdit(contact)}
+                    style={styles.editBtn}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(contact._id)}
+                    style={styles.deleteBtn}
+                  >
+                    Delete
+                  </button>
                 </div>
               </li>
             ))}
-        </ul>
-      </div>
+          </ul>
+        </>
+      )}
     </div>
   );
+};
+
+const styles = {
+  container: {
+    maxWidth: '600px',
+    margin: 'auto',
+    padding: '20px',
+  },
+  list: {
+    listStyle: 'none',
+    padding: 0,
+  },
+  card: {
+    background: '#f2f2f2',
+    padding: '15px',
+    borderRadius: '8px',
+    marginBottom: '10px',
+    display: 'flex',
+    justifyContent: 'space-between',
+  },
+  actions: {
+    display: 'flex',
+    gap: '10px',
+    alignItems: 'center',
+  },
+  editBtn: {
+    padding: '6px 12px',
+    backgroundColor: '#007bff',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '4px',
+  },
+  deleteBtn: {
+    padding: '6px 12px',
+    backgroundColor: '#dc3545',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '4px',
+  },
 };
 
 export default Dashboard;
